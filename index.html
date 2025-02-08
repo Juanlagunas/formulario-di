@@ -8,6 +8,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"> <!-- Font Awesome -->
   <style>
+    .pac-container {
+      background-color: white !important;  /* Cambia el fondo del contenedor de sugerencias */
+      font-family: 'Roboto', sans-serif !important; /* Cambia la fuente */
+    }
+
+    .pac-item {
+      color: black !important; /* Cambia el color del texto en las sugerencias */
+      font-size: 16px !important;
+    }
+
+    .pac-item:hover {
+      background-color: lightgray !important; /* Cambia el color al pasar el cursor */
+    }
+
+    .pac-item-query {
+      color: deeppink !important; /* Cambia el color del texto resaltado en la sugerencia */
+      font-weight: bold !important;
+    }
+
+
     #map {
       height: 400px;
       width: 100%;
@@ -121,6 +141,13 @@
       center: { lat: 19.432608, lng: -99.133209 }, // Ubicación predeterminada
     });
 
+    const customIcon = {
+      url: "https://maps.google.com/mapfiles/ms/icons/pink-dot.png", // URL del nuevo icono
+      scaledSize: new google.maps.Size(50, 50), // Ajusta el tamaño del icono
+      origin: new google.maps.Point(0, 0),
+      anchor: new google.maps.Point(25, 50)
+    };
+
     const inputCalle = document.getElementById("calle");
     autocomplete = new google.maps.places.Autocomplete(inputCalle);
     autocomplete.setComponentRestrictions({ country: 'mx' });
@@ -138,6 +165,25 @@
       document.getElementById("colonia").value = obtenerComponente(direccion, ['neighborhood', 'sublocality']);
       document.getElementById("municipio").value = obtenerComponente(direccion, 'locality');
       document.getElementById("codigoPostal").value = obtenerComponente(direccion, 'postal_code');
+
+      // Agregar el marcador con el nuevo icono
+      if (marker) {
+        marker.setPosition(place.geometry.location);
+      } else {
+        marker = new google.maps.Marker({
+          position: place.geometry.location,
+          map: map,
+          icon: customIcon, // Se usa el nuevo icono
+          draggable: true
+        });
+
+        marker.addListener('dragend', function() {
+          const newPos = marker.getPosition();
+          actualizarDireccion(newPos.lat(), newPos.lng());
+        });
+      }
+
+      map.setCenter(place.geometry.location);
     });
 
     function obtenerComponente(direccion, tipos) {
@@ -149,45 +195,40 @@
     }
 
     // Obtener la ubicación actual cuando el usuario presiona el botón
-    const usarUbicacionButton = document.getElementById("usarUbicacion");
-    usarUbicacionButton.addEventListener("click", function() {
+    document.getElementById("usarUbicacion").addEventListener("click", function() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
 
-          // Centrar el mapa en la ubicación obtenida
           map.setCenter(new google.maps.LatLng(lat, lng));
 
-          // Crear el marcador en la ubicación obtenida
+          // Agregar o actualizar el marcador con el nuevo icono
           if (marker) {
-            marker.setPosition(new google.maps.LatLng(lat, lng)); // Actualiza la posición del marcador
+            marker.setPosition(new google.maps.LatLng(lat, lng));
           } else {
             marker = new google.maps.Marker({
               position: new google.maps.LatLng(lat, lng),
               map: map,
-              draggable: true,  // Habilitar el marcador como arrastrable
-              title: "Arrastra el marcador para cambiar la ubicación",
+              icon: customIcon, // Se usa el nuevo icono
+              draggable: true
             });
 
-            // Agregar un evento para cuando el marcador se mueva
             marker.addListener('dragend', function() {
               const newPos = marker.getPosition();
               actualizarDireccion(newPos.lat(), newPos.lng());
             });
           }
 
-          // Usar el geocoder para obtener la dirección desde las coordenadas
           actualizarDireccion(lat, lng);
         }, function() {
-          alert("No se pudo obtener la ubicación. Asegúrate de que los permisos de geolocalización estén habilitados.");
+          alert("No se pudo obtener la ubicación.");
         });
       } else {
-        alert("La geolocalización no está soportada en tu navegador.");
+        alert("Tu navegador no soporta geolocalización.");
       }
     });
 
-    // Función para actualizar la dirección en los campos del formulario
     function actualizarDireccion(lat, lng) {
       geocoder = new google.maps.Geocoder();
       const latLng = new google.maps.LatLng(lat, lng);
@@ -203,7 +244,7 @@
             document.getElementById("codigoPostal").value = obtenerComponente(direccion, 'postal_code');
           }
         } else {
-          alert("No se pudo obtener la dirección: " + status);
+          alert("No se pudo obtener la dirección.");
         }
       });
     }
@@ -229,6 +270,7 @@
     });
   }
 </script>
+
 
 </body>
 </html>
